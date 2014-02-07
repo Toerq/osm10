@@ -90,22 +90,27 @@ void child_command(enum cmd_pos pos, char* argv[], int left_pipe_read_fd, int ri
     
   switch(pos){
   case single:
-    close(left_pipe_read_fd);
+    /* close(left_pipe_read_fd);
     close(right_pipe[0]);
     close(right_pipe[1]);
+    */
     break;
   case first:
-    close(left_pipe_read_fd);
+    //close(left_pipe_read_fd);
     dup2(right_pipe[1], STDOUT_FILENO);
+    close(right_pipe[1]);
     break;
   case middle:
     dup2(left_pipe_read_fd, STDIN_FILENO);
     dup2(right_pipe[1], STDOUT_FILENO);
+    close(left_pipe_read_fd);
+    close(right_pipe[1]);
     break;
   case last:
     dup2(left_pipe_read_fd, STDIN_FILENO);
-    close(right_pipe[0]);
-    close(right_pipe[1]);
+    close(left_pipe_read_fd);
+    //close(right_pipe[0]);
+    //close(right_pipe[1]);
     break;
   case unknown:
     break;
