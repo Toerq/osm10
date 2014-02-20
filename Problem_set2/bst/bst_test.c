@@ -181,8 +181,8 @@ int main()
 {
     int *data;
     struct bst_node** root = NULL;
-    const int nthreads = 100;
-    const int thread_iterations = 1000;
+    const int nthreads = 300;
+    const int thread_iterations = 10000;
     const int iterations = nthreads * thread_iterations;
     const int n = iterations;
 

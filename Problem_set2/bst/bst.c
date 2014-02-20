@@ -122,13 +122,13 @@ struct bst_node** search_two(struct bst_node** root, comparator compare, void* d
         int compare_result = compare(data, (*node)->data);
         if (compare_result < 0) {
             lock_lock(&((*node)->left));
-            unlock_lock(&prev);
             node = &(*node)->left;
+            unlock_lock(&prev);
         }
         else if (compare_result > 0) {
             lock_lock(&((*node)->right));
-            unlock_lock(&prev);
             node = &(*node)->right;
+            unlock_lock(&prev);
         }
         else
             break;
