@@ -107,19 +107,21 @@ node_delete_aux(struct bst_node** node)
 {
     /* TODO: For Step 2 you will have to make this function thread-safe */
     struct bst_node* old_node = *node;
+    struct bst_node** pred = &(*node)->left;
+    lock_lock(pred);
     if ((*node)->left == NULL) {
         lock_lock(&((*node)->right));
         *node = (*node)->right;
         free_node(old_node);
         unlock_lock(node);
     } else if ((*node)->right == NULL) {
-        lock_lock(&((*node)->left));
+        //lock_lock(&((*node)->left));
         *node = (*node)->left;
         free_node(old_node);
         unlock_lock(node);
     } else {
-        struct bst_node** pred = &(*node)->left;
-        lock_lock(pred);
+        //struct bst_node** pred = &(*node)->left;
+        //lock_lock(pred);
         struct bst_node** old_pred;
 	while ((*pred)->right != NULL) {
             old_pred = pred;
@@ -211,9 +213,7 @@ node_delete_ts_fg(struct bst_node** root, comparator compare, void* data)
     if (node == NULL)
         return -1;
     
-    //lock_lock (node);
     node_delete_aux(node);
-    //pthread_mutex_unlock (node->lock);
     return 0;
 }
 
@@ -265,7 +265,7 @@ int
 node_insert(struct bst_node** root, comparator compare, void* data)
 {
     struct bst_node** node = search(root, compare, data);
-    unlock_lock(node);
+     unlock_lock(node);
     if (*node == NULL) {
         *node = new_node(data);
         return 0;
