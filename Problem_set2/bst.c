@@ -71,10 +71,10 @@ static void unlock_lock(struct bst_node** node) {
 struct bst_node** search(struct bst_node** root, comparator compare, void* data)
 {
     /* TODO: For the Step 2 you will have to make this function thread-safe */
-
+    lock_lock(root);
     struct bst_node** node = root;
     struct bst_node** old_node;
-    lock_lock(node);
+    //lock_lock(node);
     while (*node != NULL) {
         int compare_result = compare(data, (*node)->data);
         if (compare_result < 0) {
@@ -107,8 +107,9 @@ node_delete_aux(struct bst_node** node)
 {
     /* TODO: For Step 2 you will have to make this function thread-safe */
     struct bst_node* old_node = *node;
+    lock_lock(&(*node)->left);
     struct bst_node** pred = &(*node)->left;
-    lock_lock(pred);
+    //lock_lock(pred);
     if ((*node)->left == NULL) {
         lock_lock(&((*node)->right));
         *node = (*node)->right;
