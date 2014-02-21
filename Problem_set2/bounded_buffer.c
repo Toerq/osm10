@@ -33,6 +33,7 @@ buffer_t buffer;
 
 pthread_t consumer_tid[CONSUMERS], producer_tid[PRODUCERS];
 
+pthread_mutex_t mutex = PTHREAD_MUTEX_INITIALIZER;
 sem_t buffer_lock_in; 
 sem_t buffer_lock_out;
 int produced;
@@ -50,8 +51,10 @@ insert_item(int item)
      * access to the buffer and use the existing code to remove an item.
      */
     sem_wait(&buffer_lock_in);
+    pthread_mutex_lock(&mutex);
     buffer.value[buffer.next_in] = item;
     buffer.next_in = (buffer.next_in + 1) % BUFFER_SIZE;
+    pthread_mutex_unlock(&mutex);
     produced++;
 
     return 0;
@@ -70,9 +73,11 @@ remove_item(int *item)
      */
 
     sem_wait(&buffer_lock_out);
+    pthread_mutex_lock(&mutex);
     *item = buffer.value[buffer.next_out];
     buffer.value[buffer.next_out] = -1;
     buffer.next_out = (buffer.next_out + 1) % BUFFER_SIZE;
+    pthread_mutex_unlock(&mutex);
     consumed++;
 
     return 0;
