@@ -12,6 +12,20 @@
 
 -compile(export_all). 
 
+add_aux(A, B, Base) ->
+    tbi.
+
+add(A, B, Base) ->
+    AList = integer_to_list(A, Base),
+    BList = integer_to_list(B, Base),
+    SumList = integer_to_list(A+B, Base),
+    SumList.
+
+mkCarrierLists(L) ->
+    {[[N | " "] || N <- L],["- " || N <- L]}.
+
+printCarrierLists({L1, L2}) ->
+    io:format("~s~n~s~n", [L1, L2]).
 
 %% @doc Generates a list of lists of increasing sequences of integers
 %% starting with the empty list and ending with [1,2, ..., N].
