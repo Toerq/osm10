@@ -74,20 +74,44 @@ filter_collect(N,R) ->
 	{I, L} -> filter_collect(N-1, [{I,L}|R])
     end.
 
+%% @doc Returns {NewList, CarrierList} where NewList is 
+%% the result of A added to B in base Base. CarrierList 
+%% contains a list of every of 1's and 0's where the 1's 
+%% represents if a carry in has been made and 0 if a
+%% carry in has not been made.
+%%
+%% === Example ===
+%% <div class="example">```
+%% 1> utils:add([1,0,1],[1,1,1], 2).
+%% {[1,1,0,0],[1,1,1,0]}
+-spec add(A, B, Base) -> {NewList, CarrierList} when
+      A :: [List],
+      B :: [List],
+      Base :: integer(),
+%%    lists:length(A) =:= lists:length(B),
+      NewList :: [List],
+      CarrierList :: [List].
 
 add(A, B, Base) ->
     add(lists:reverse(A), lists:reverse(B), Base, 0, [], []).
 
 
 add([],[], _, Carry, ResultList, CarrierList) ->
-    {[Carry|ResultList], CarrierList};
+    {[Carry|ResultList],  [Carry|CarrierList]};
 
 add([A1|A], [B1|B], Base, Carry, ResultList, CarrierList) ->
     NewCarry = (A1 + B1 + Carry) div Base,
     NewResult = (A1 + B1 + Carry) rem Base,
-    add(A, B, Base, NewCarry, [NewResult|ResultList], [NewCarry|CarrierList]).
+    add(A, B, Base, NewCarry, [NewResult|ResultList], [Carry|CarrierList]).
 
-
+%% @doc Returns List where List is a repreentation of Number
+%% in Base divided into elements.
+%%
+%% === Example ===
+%% 
+%% <div class="example">```
+%% 1> utils:integerToListBase(127,3).
+%% [1,1,2,0,1]
 integerToListBase(Number, Base) ->
     integerToListBase(Number, Base, []).
 
