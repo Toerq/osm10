@@ -43,18 +43,26 @@ int_list_to_string(List) ->
 %%    2910
 %%    3500
 %% + ----
-%%   6410
+%%    6410
 %% ok'''
 %% </div>
-
+-spec print_result(Carry,A,B,Result) -> ok when
+      X :: integer(),
+      Y :: integer(),
+      Z :: integer(),
+      Q :: integer(),
+      Carry::[X],
+      A::[Y],
+      B::[Z],
+      Result::[Q].
+      
 print_result(Carry, A, B, Result) ->
     io:format("  " ++ remove_all_zeros(int_list_to_string(Carry))++"~n"),
     io:format("  " ++ create_carry_line(Carry)++"~n"),
     io:format("   " ++ remove_first_zeros(int_list_to_string(A))++"~n"),
     io:format("   " ++ remove_first_zeros(int_list_to_string(B))++"~n"),
     io:format("+ " ++ line(length(Result))++"~n"),
-    io:format("  " ++ remove_first_zeros(int_list_to_string(Result))++"~n")
-    .
+    io:format("  " ++ remove_first_zeros(int_list_to_string(Result))++"~n").
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %% @doc Adds Difference zeros to List
@@ -65,6 +73,10 @@ add_zero(List, Difference) ->
 
 %% @doc If the lists L1 and L2 are of different lengths, add zeros
 %% to the shorter list so that they are of the _same length_.
+%% <div class="example">```
+%% fill_list([1,2,3,4,5,6,7],[1,2,3]).
+%% {[1,2,3,4,5,6,7],[0,0,0,0,1,2,3]}'''
+%% </div>
 fill_list(L1, L2) ->
     Length1 = erlang:length(L1),
     Length2 = erlang:length(L2),
