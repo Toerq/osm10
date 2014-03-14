@@ -7,29 +7,45 @@
 
 -compile(export_all). 
 
-
+%% Creates a list of '-' characters with size N.
 line(N) ->
     utils:repeat($-, N).
 
+%% Replaces all zeros in List with spaces.
 remove_all_zeros(List) ->
     F = fun(X) when X =:= 48 -> X-16; (X) -> X  end,
     lists:map(F,List).
 
+%% Copy List but replaces all 1:s with 45 (ASCII for '-'). 
 create_carry_line(List) ->
     F = fun(X) when X =:= 1 -> 45; (_X) -> 32  end,
     lists:map(F,List).
 
+%% Replaces the zeros in the beginning of List with spaces.
 remove_first_zeros([]) ->
     [];
 remove_first_zeros([48|T]) ->
     [32|remove_first_zeros(T)];
 remove_first_zeros(List) ->
     List.
-    
+
+%% Converts a list with integers to corresponding string    
 int_list_to_string(List) ->
     F = fun(X) when X < 10 -> X+48; (X) -> X+55 end,
     lists:map(F,List).
 		
+%% @doc Prints Carry, A,B and Result.
+%% === Example ===
+%% <div class="example">```
+%% print_result([0,1,0,0],[2,9,1,0],[3,5,0,0],[6,4,1,0]).
+%%    1  
+%%    -  
+%%    2910
+%%    3500
+%% + ----
+%%   6410
+%% ok'''
+%% </div>
 
 print_result(Carry, A, B, Result) ->
     io:format("  " ++ remove_all_zeros(int_list_to_string(Carry))++"~n"),
