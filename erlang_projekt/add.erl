@@ -8,7 +8,9 @@
       B::integer(), 
       Base::integer().
 
-start(A,B, Base) when Base >= 2 andalso Base =< 32 ->
+start(A,B, Base) when Base >= 2 andalso Base =< 36 ->
+    {Al,Bl} = special:fill_list(utils:integerToListBase(A,Base),utils:integerToListBase(B,Base)),
+    utils:add(Al,Bl,Base).
     
 
 %% @doc TODO: add documentation
