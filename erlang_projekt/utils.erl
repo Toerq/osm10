@@ -134,9 +134,23 @@ lqr(L, N) ->
       T :: term(),
       N :: integer().
 
-
 split(L, N) ->
-  tbi.
+    split(L,N,[]).
+
+%% An auxiliary recursive split function
+split([], _, Lists) ->
+    Lists;
+split(L, 1, Lists) ->
+    [L|Lists];
+split(L, N, Lists) ->
+    {Len,Q,_} = lqr(L, N),
+    if Len >= N ->
+	    {L1, L2} = lists:split(Len - Q, L),
+	    split(L1, N-1, [L2|Lists]);
+       true ->
+	    split(L, N-1, Lists)
+    end.
+
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%                                                                          %%
