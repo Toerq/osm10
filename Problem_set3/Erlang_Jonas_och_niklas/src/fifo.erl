@@ -28,6 +28,7 @@ size({fifo, In, Out}) ->
 -spec push(Fifo, X) -> fifo() when
       X::term(),
       Fifo::fifo().
+
 %% To make it fast to push new values, add a new value to the head of
 %% In.
 
@@ -44,6 +45,7 @@ push({fifo, In, Out}, X) ->
 
 pop({fifo, [], []}) -> 
     erlang:error('empty fifo');
+    %%{error, empty_fifo};
 
 %% To make pop fast we want to pop of the head of the Out list.
     

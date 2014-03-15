@@ -28,12 +28,17 @@ loop(Fifo) ->
 	    PID ! fifo:empty(Fifo),
 	    loop(Fifo);
 	{pop, PID} ->
-	    {Value, NewFifo} =  fifo:pop(Fifo),
-	    PID ! {pop, {Value, NewFifo}},
-	    loop(NewFifo);
-	{push, PID, X} ->
-	    NewFifo =  fifo:push(Fifo, X),
-	    loop(NewFifo)
+	    try 
+		{Value, NewFifo} = fifo:pop(Fifo),
+		PID ! {pop, Value},
+		loop(NewFifo)
+	    catch
+		error:Error -> PID ! {Error}
+	    end;
+	{push, Value, PID} ->
+	    NFifo = fifo:push(Fifo, Value),
+	    PID ! {push},
+	    loop(NFifo)
     end.
 
 
@@ -69,21 +74,22 @@ empty(Fifo) ->
 pop(Fifo) ->
     Fifo ! {pop, self()},
     receive
-	{pop, {X, Queue}} ->
-	    {X, Queue}
+	{pop, Value} ->
+	    Value;
+	{'empty fifo'} -> {error, empty_fifo}
     end.	  
 
 
 
 %% @doc Push a new value to Fifo. 
--spec push(Fifo, Value) -> pfifo() when
+-spec push(Fifo, Value) -> ok when
       Fifo::pfifo(),
       Value::term().
 push(Fifo, Value) ->
-    Fifo ! {push, self(), Value},
+    Fifo ! {push, Value, self()},
     receive
-	{push, Queue} ->
-	    Queue
+	{push} ->
+	    ok
     end.
 
 
@@ -128,10 +134,4 @@ large_push_pop_test() ->
     ?assertEqual([pop(F) || _ <- List], List).
    
 		 
-    
-    
-    
-    
-    
-    
-    
+
