@@ -5,7 +5,19 @@
 %% To use EUnit we must include this.
 -include_lib("eunit/include/eunit.hrl").
 
-%% @doc TODO: add documentation
+%% @doc Sequentially calculates the addition between A and B in base Base
+%%
+%% === Example ===
+%% <div class="example">```
+%% 1> add:start(478,679,16).
+%%    11 
+%%    -- 
+%%    1DE
+%%    2A7
+%% + ----
+%%    485
+%%  ok'''
+%% </div>
 -spec start(A,B,Base) -> ok when 
       A::integer(),
       B::integer(), 
@@ -18,7 +30,25 @@ start(A,B, Base) when Base >= 2 andalso Base =< 36 ->
     special:print_result(Carry, Al, Bl, Result).
     
 
-%% @doc TODO: add documentation
+%% @doc Concurrently calculates the addition between A and B in base Base,
+%% divided over N workers. The integers A and B are split into segments
+%% of equal (or close to equal) length/size and then sent to separate
+%% workers that calculates their segments of A and B. Carry-overs can be
+%% sent between workers and the workers individually sends their results
+%% to the parent process that simply merges them into a final result.
+%% 
+%% === Example ===
+%% <div class="example">```
+%% 1> 17> add:start(4985581589776235987988, 6793124512341289768987, 16, 5).
+%%        111    1111    
+%%        ---    ----    
+%%    10E44D7E9287BCF8414
+%%    170418A60754D3E981B
+%% + --------------------
+%%    27E8662499DC90E1C2F
+%% ok'''
+%% </div>
+
 -spec start(A,B,Base, Options) -> ok when 
       A::integer(),
       B::integer(), 

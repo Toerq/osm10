@@ -41,15 +41,16 @@ fill_list(L1, L2) ->
     end.
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 		
-%% @doc Prints Carry, A,B and Result.
+%% @doc Prints Carry, A,B and Result so that it'll be easier to understand 
+%% how the calculation was executed.
 %% === Example ===
 %% <div class="example">```
-%% print_result([0,1,0,0],[2,9,1,0],[3,5,0,0],[6,4,1,0]).
+%% 1> special:print_result([0,1,0,0],[2,9,1,0],[3,5,0,0],[0,6,4,1,0]).
 %%    1  
 %%    -  
 %%    2910
 %%    3500
-%% + ----
+%% + -----
 %%    6410
 %% ok'''
 %% </div>
@@ -97,7 +98,7 @@ int_list_to_string(List) ->
     lists:map(F,List).
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-%% @doc Returns {NewList, CarrierList} where NewList is 
+%% @doc Returns {ResultList, CarrierList} where ResultList is 
 %% the result of A added to B in base Base. CarrierList 
 %% contains a list of every of 1's and 0's where the 1's 
 %% represents if a carry in has been made and 0 if a
@@ -105,39 +106,59 @@ int_list_to_string(List) ->
 %%
 %% === Example ===
 %% <div class="example">```
-%% 1> utils:add([1,0,1],[1,1,1], 2).
+%% 1> special:add([1,0,1],[1,1,1], 2).
 %% {[1,1,0,0],[1,1,1,0]}'''
 %% </div>
--spec add(A, B, Base) -> {NewList, CarrierList} when
-      A :: [List],
-      B :: [List],
+-spec add(A, B, Base) -> {ResultList, CarrierList} when
+      A :: [integer()],
+      B :: [integer()],
       Base :: integer(),
-%%    lists:length(A) =:= lists:length(B),
-      NewList :: [List],
-      CarrierList :: [List].
+      NewList :: [integer()],
+      CarrierList :: [integer()].
 
 add(A, B, Base) ->
     add(lists:reverse(A), lists:reverse(B), Base, 0, [], []).
 
+%% @doc The same as add/3, but with an available Carry (carry-in).
+%% === Example ===
+%% <div class="example">```
+%% 1> special:add([1,2,3],[0,9,7], 10, 1).
+%% {[2,2,1],[1,1,1]}'''
+%% </div>
+-spec add(A, B, Base, Carry) -> {ResultList, CarrierList} when
+      A :: [integer()],
+      B :: [integer()],
+      Base :: integer(),
+      Carry :: integer(),
+      NewList :: [integer()],
+      CarrierList :: [integer()].
+
 add(A, B, Base, Carry) ->
     add(lists:reverse(A), lists:reverse(B), Base, Carry, [], []).
 
+%% End of recursive add, 
+%% the carry is added to the result, and the list of carries
 add([],[], _, Carry, ResultList, CarrierList) ->
     {[Carry|ResultList],  [Carry|CarrierList]};
 
+%% Recursive add where the heads A1 and B1 are added together.
+%% (A1+B1+Carry) are consed to ResultList in the correct base 
+%% and if there is a carry-out it'll be added to the CarrierList.
 add([A1|A], [B1|B], Base, Carry, ResultList, CarrierList) ->
     NewCarry = (A1 + B1 + Carry) div Base,
     NewResult = (A1 + B1 + Carry) rem Base,
     add(A, B, Base, NewCarry, [NewResult|ResultList], [Carry|CarrierList]).
 
-%% @doc Returns List where List is a repreentation of Number
+%% @doc Returns List where List is a representation of Number
 %% in Base divided into elements.
 %%
 %% === Example ===
 %% 
 %% <div class="example">```
-%% 1> utils:integerToListBase(127,3).
-%% [1,1,2,0,1]'''
+%% 1> special:integerToListBase(127,3).
+%% [1,1,2,0,1]
+%% 2> special:integerToListBase(190, 16).
+%% [11,14]'''
 %% </div>
 integerToListBase(Number, Base) ->
     integerToListBase(Number, Base, []).
@@ -147,7 +168,7 @@ integerToListBase(0 , _Base, List) ->
 integerToListBase(Number, Base, List) ->
     integerToListBase(Number div Base ,Base , [Number rem Base | List]).
 
-%% @doc TODO: add documentation
+%% Worker function for separate additions
 worker({ListA,ListB}, CollectPID, Base) ->
     receive
 	{first, PID} ->
@@ -166,9 +187,7 @@ worker({ListA,ListB}, CollectPID, Base) ->
 			
 	    end;
 	{carry, Carry} ->
-	    %%Result = 
 	    {ResultList, CarryList} = add(ListA, ListB, Base, Carry),
-	    %%CollectPID ! Result,
 	    receive
 		{pid, PID, Pos} ->
 		    [CarryToSend|_] = CarryList,
@@ -177,8 +196,7 @@ worker({ListA,ListB}, CollectPID, Base) ->
 	    end
     end.
 
-%% TODO: add documentation
-%% ANTAGLIGEN FEL HÄR!!!
+%% Recursively merges the results and carries from all the workers
 merge([L], ResultList, CarryList) ->
     %% we do care about the head in the base case, 
     %% because this is the (msb)carryover.
@@ -189,7 +207,24 @@ merge([L1|L],ResultList, CarryList) ->
     {_,{[_  | Result], [_ | Carry]}} = L1, 
     merge(L, Result ++ ResultList, Carry ++ CarryList).
 
-%% TODO: add documentation
+%% @doc Recursively collects N results from the N workers and merges their 
+%% ResultLists and CarrierLists to a final result of the additions.
+%%
+%% === Example ===
+%% <div class="example">```
+%% 1> special:collect(3,[{2,{[4,2,9],[1,0,1]}}]).
+%% ...
+%% ...(collects from all the other workers recursively)...
+%% ...
+%% {[3,7,0,9,4,2,9,3,2,1],[0,0,1,0,1,0,1,0,0,0]}'''
+%% </div>
+-spec collect(N, AuxList) -> {ResultList, CarryList} when
+      N :: integer(),
+      AuxList :: [{Pos, {ResList, CarList}}],
+      Pos :: integer(),
+      ResList :: [integer()],
+      CarList :: [integer()].
+
 collect(0, AuxList) ->
     io:format("~p~n~n", [AuxList]),
     merge(lists:keysort(1, AuxList),[],[]);
@@ -201,13 +236,37 @@ collect(N, AuxList) ->
 	    {ResList, CarList}
     end.
 
-%% TODO: add documentation
+%% @doc Recursively spawns the neccessary workers to calculate the additions.
+%% 
+%% === Example ===
+%% <div class="example">```
+%% 1> special:workerSpawner(utils:split([1,2,3,4],2),utils:split([1,2,3,4],2), [], self(), 10).
+%% [<0.47.0>,<0.46.0>]'''
+%% </div> 
+-spec workerSpawner(A, B, AuxList, CollectPID, Base) -> Aux when
+      A :: [integer()],
+      B :: [integer()],
+      Aux :: [pid()],
+      CollectPID :: pid(),
+      Base :: integer().
+
 workerSpawner([],[], Aux, _, _) ->
     Aux;
 workerSpawner([HeadA |ListA], [HeadB |ListB], Aux, CollectPID, Base) ->
     workerSpawner(ListA, ListB, [spawn_link(fun()-> worker({HeadA, HeadB}, CollectPID, Base) end) | Aux], CollectPID, Base).
 
-%% start with pos 2 cuz first already knows its first
+%% @doc Recursively signals all the workers the with PID of the next worker, so
+%% that the carry-outs can be sent to the correct worker. The first worker
+%% will know it's first, so we start with position 2.
+%% 
+%% === Example ===
+%% <div class="example">```
+%% 1> special:sendPIDs([<0.58.0>, <0.59.0>, <0.60.0>]).
+%% ok'''
+%% </div>
+-spec sendPIDs(PIDList) -> ok when
+      PIDList :: [pid()].
+
 sendPIDs(List) ->
     sendPIDs(List, 2).
 
