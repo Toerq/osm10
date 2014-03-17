@@ -1,6 +1,6 @@
 %% @doc Erlang mini project.
 -module(add).
--export([start/3, start/4]).
+-export([start/3, start/5]).
 
 %% To use EUnit we must include this.
 -include_lib("eunit/include/eunit.hrl").
@@ -49,14 +49,15 @@ start(A,B, Base) when Base >= 2 andalso Base =< 36 ->
 %% ok'''
 %% </div>
 
--spec start(A,B,Base, Options) -> ok when 
+-spec start(A,B,Base, Options, MinMax) -> ok when 
       A::integer(),
       B::integer(), 
       Base::integer(),
       Option::atom() | tuple(),
-      Options::[Option].
+      Options::[Option],
+      MinMax:: tuple().
 
-start(A,B,Base,N) ->
+start(A,B,Base,N, MinMax) ->
     A1 = special:integerToListBase(A, Base),
     B1 = special:integerToListBase(B, Base),
     {A2, B2} = special:fill_list(A1, B1),
@@ -65,7 +66,7 @@ start(A,B,Base,N) ->
     CollectPID = self(),
 
     WorkerPids = special:workerSpawner(SplitA, SplitB, [], 
-				       CollectPID, Base),
+				       CollectPID, Base, MinMax),
     
     io:format("~p~n", [WorkerPids]),
     [FirstProcess|RestPids] = WorkerPids, 
@@ -82,4 +83,3 @@ start(A,B,Base,N) ->
     
     {Result, Carry} = special:collect(length(WorkerPids), []),
     special:print_result(Carry, A2, B2, Result).
-

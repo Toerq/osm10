@@ -1,7 +1,7 @@
 %% @doc Functions for add module
 -module(special).
 -export([fill_list/2, print_result/4, add/3, add/4, 
-	 integerToListBase/2, workerSpawner/5, sendPIDs/1, collect/2]).
+	 integerToListBase/2, workerSpawner/6, sendPIDs/1, collect/2]).
 
 %% To use EUnit we must include this.
 -include_lib("eunit/include/eunit.hrl").
@@ -169,31 +169,106 @@ integerToListBase(Number, Base, List) ->
     integerToListBase(Number div Base ,Base , [Number rem Base | List]).
 
 %% Worker function for separate additions
-worker({ListA,ListB}, CollectPID, Base) ->
+%% worker({ListA,ListB}, CollectPID, Base) ->
+%%     receive
+%% 	{first, PID} ->
+%% 	    {ResultList, CarryList} = add(ListA, ListB, Base),
+%% 	    CollectPID ! {1, {ResultList, CarryList}},
+%% 	    [CarryToSend|_] = CarryList,
+%% 	    PID ! {carry, CarryToSend};
+%% 	{alone} ->
+%% 	    Result = {_ResultList, _CarryList} = add(ListA, ListB, Base),
+%% 	    CollectPID ! Result;
+%% 	{last, Pos} ->
+%% 	    receive 
+%% 		{carry, Carry} ->
+%% 		    {ResultList, CarryList} = add(ListA, ListB, Base, Carry),
+%% 		    CollectPID ! {Pos, {ResultList, CarryList}}
+			
+%% 	    end;
+%% 	{carry, Carry} ->
+%% 	    {ResultList, CarryList} = add(ListA, ListB, Base, Carry),
+%% 	    receive
+%% 		{pid, PID, Pos} ->
+%% 		    [CarryToSend|_] = CarryList,
+%% 		    PID ! {carry, CarryToSend},
+%% 		    CollectPID ! {Pos, {ResultList, CarryList}}
+%% 	    end
+%%     end.
+
+randomSleep(Min, Max) ->
+    {A, B ,C} = now(),
+    random:seed(A,B,C),
+    timer:sleep(Min + random:uniform(Max-Min)).
+
+worker2(ListA, ListB, Base, 0, ReturnPID,{Min, Max}) ->
+    randomSleep(Min, Max),
+    ReturnPID ! {case0, add(ListA, ListB, Base, 0)};
+worker2(ListA, ListB, Base, 1, ReturnPID,{Min, Max}) ->
+    randomSleep(Min, Max),
+    ReturnPID ! {case1, add(ListA, ListB, Base, 1)}.
+
+
+worker({ListA,ListB}, CollectPID, Base, {Min, Max}) ->
     receive
 	{first, PID} ->
+            randomSleep(Min, Max),
 	    {ResultList, CarryList} = add(ListA, ListB, Base),
 	    CollectPID ! {1, {ResultList, CarryList}},
 	    [CarryToSend|_] = CarryList,
 	    PID ! {carry, CarryToSend};
 	{alone} ->
+            randomSleep(Min, Max),
 	    Result = {_ResultList, _CarryList} = add(ListA, ListB, Base),
 	    CollectPID ! Result;
 	{last, Pos} ->
+            ReturnPID = self(),
+            [Case0, Case1] = [spawn_link(fun()-> worker2(ListA, ListB, Base, C, ReturnPID,{Min, Max}) end) || C <- [0,1]],
 	    receive 
 		{carry, Carry} ->
-		    {ResultList, CarryList} = add(ListA, ListB, Base, Carry),
+                    if
+                        Carry =:= 0 -> 
+                            receive 
+                                {case0, Result0} ->
+                                    exit(Case1, not_needed),
+                                    {ResultList, CarryList} = Result0
+                            end;
+                        true -> 
+                            receive
+                                {case1, Result1} ->
+                                    exit(Case0, not_needed),
+                                    {ResultList, CarryList} = Result1
+                            end
+                    end,
 		    CollectPID ! {Pos, {ResultList, CarryList}}
 			
 	    end;
-	{carry, Carry} ->
-	    {ResultList, CarryList} = add(ListA, ListB, Base, Carry),
-	    receive
-		{pid, PID, Pos} ->
-		    [CarryToSend|_] = CarryList,
-		    PID ! {carry, CarryToSend},
-		    CollectPID ! {Pos, {ResultList, CarryList}}
-	    end
+        {middle, Pos} ->
+            ReturnPID = self(),
+            [Case0, Case1] = [spawn_link(fun()-> worker2(ListA, ListB, Base, C, ReturnPID, {Min, Max}) end) || C <- [0,1]],
+            receive
+                {carry, Carry} ->
+                    if
+                        Carry =:= 0 -> 
+                            receive 
+                                {case0, Result0} ->
+                                    exit(Case1, not_needed),
+                                    {ResultList, CarryList} = Result0
+                            end;
+                        true -> 
+                            receive
+                                {case1, Result1} ->
+                                    exit(Case0, not_needed),
+                                    {ResultList, CarryList} = Result1
+                            end
+                    end
+            end,
+            receive
+                {pid, PID, Pos} ->
+                    [CarryToSend|_] = CarryList,
+                    PID ! {carry, CarryToSend},
+                    CollectPID ! {Pos, {ResultList, CarryList}}
+            end
     end.
 
 %% Recursively merges the results and carries from all the workers
@@ -243,17 +318,18 @@ collect(N, AuxList) ->
 %% 1> special:workerSpawner(utils:split([1,2,3,4],2),utils:split([1,2,3,4],2), [], self(), 10).
 %% [<0.47.0>,<0.46.0>]'''
 %% </div> 
--spec workerSpawner(A, B, AuxList, CollectPID, Base) -> AuxList when
+-spec workerSpawner(A, B, AuxList, CollectPID, Base, MinMax) -> AuxList when
       A :: [integer()],
       B :: [integer()],
       AuxList :: [pid()],
       CollectPID :: pid(),
-      Base :: integer().
+      Base :: integer(),
+      MinMax:: tuple().
 
-workerSpawner([],[], Aux, _, _) ->
+workerSpawner([],[], Aux, _, _,_) ->
     Aux;
-workerSpawner([HeadA |ListA], [HeadB |ListB], Aux, CollectPID, Base) ->
-    workerSpawner(ListA, ListB, [spawn_link(fun()-> worker({HeadA, HeadB}, CollectPID, Base) end) | Aux], CollectPID, Base).
+workerSpawner([HeadA |ListA], [HeadB |ListB], Aux, CollectPID, Base, MinMax) ->
+    workerSpawner(ListA, ListB, [spawn_link(fun()-> worker({HeadA, HeadB}, CollectPID, Base, MinMax) end) | Aux], CollectPID, Base, MinMax).
 
 %% @doc Recursively signals all the workers the with PID of the next worker, so
 %% that the carry-outs can be sent to the correct worker. The first worker
@@ -275,6 +351,7 @@ sendPIDs(L, Pos) when length(L) =:= 1 ->
     SendPID ! {last, Pos};
 
 sendPIDs([SendPID|[RecievePID|L]], Pos) ->
+    SendPID ! {middle, Pos},
     SendPID ! {pid, RecievePID, Pos},
     sendPIDs([RecievePID|L], Pos + 1).
 
