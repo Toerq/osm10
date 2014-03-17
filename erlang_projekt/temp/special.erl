@@ -113,7 +113,7 @@ int_list_to_string(List) ->
       A :: [integer()],
       B :: [integer()],
       Base :: integer(),
-      NewList :: [integer()],
+      ResultList :: [integer()],
       CarrierList :: [integer()].
 
 add(A, B, Base) ->
@@ -130,7 +130,7 @@ add(A, B, Base) ->
       B :: [integer()],
       Base :: integer(),
       Carry :: integer(),
-      NewList :: [integer()],
+      ResultList :: [integer()],
       CarrierList :: [integer()].
 
 add(A, B, Base, Carry) ->
@@ -218,12 +218,12 @@ merge([L1|L],ResultList, CarryList) ->
 %% ...
 %% {[3,7,0,9,4,2,9,3,2,1],[0,0,1,0,1,0,1,0,0,0]}'''
 %% </div>
--spec collect(N, AuxList) -> {ResultList, CarryList} when
+-spec collect(N, AuxList) -> {ResultList, CarrierList} when
       N :: integer(),
-      AuxList :: [{Pos, {ResList, CarList}}],
+      AuxList :: [{Pos, {ResultList, CarrierList}}],
       Pos :: integer(),
-      ResList :: [integer()],
-      CarList :: [integer()].
+      ResultList :: [integer()],
+      CarrierList :: [integer()].
 
 collect(0, AuxList) ->
     io:format("~p~n~n", [AuxList]),
@@ -243,10 +243,10 @@ collect(N, AuxList) ->
 %% 1> special:workerSpawner(utils:split([1,2,3,4],2),utils:split([1,2,3,4],2), [], self(), 10).
 %% [<0.47.0>,<0.46.0>]'''
 %% </div> 
--spec workerSpawner(A, B, AuxList, CollectPID, Base) -> Aux when
+-spec workerSpawner(A, B, AuxList, CollectPID, Base) -> AuxList when
       A :: [integer()],
       B :: [integer()],
-      Aux :: [pid()],
+      AuxList :: [pid()],
       CollectPID :: pid(),
       Base :: integer().
 
