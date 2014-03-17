@@ -395,6 +395,40 @@ result_test_() ->
 		     ?_assertEqual(A+B,list_to_integer(int_list_to_string(Result),Base))
 	     end, 
     random:seed(erlang:now()),
-    [Assert(A,B,Base) || A <- [random:uniform(1000000) || _ <- lists:seq(1,8)],
-			      B <- [random:uniform(1000000) || _ <- lists:seq(1,8)],
+    [Assert(A,B,Base) || A <- [random:uniform(1000000) || _ <- lists:seq(1,4)],
+			      B <- [random:uniform(1000000) || _ <- lists:seq(1,4)],
 			      Base <- lists:seq(2,36)].
+
+concurrent_result_test_() ->
+    Assert = 
+	fun(A,B,Base,N,MinMax) ->
+		A1 = integerToListBase(A, Base),
+		B1 = integerToListBase(B, Base),
+		{A2, B2} = fill_list(A1, B1),
+		SplitA = utils:split(A2, N),
+		SplitB = utils:split(B2, N),
+		CollectPID = self(),
+
+		WorkerPids = workerSpawner(SplitA, SplitB, [], 
+						   CollectPID, Base, MinMax),
+
+		io:format("~p~n", [WorkerPids]),
+		[FirstProcess|RestPids] = WorkerPids, 
+
+		if
+		    length(WorkerPids) =:= 1 ->
+			FirstProcess ! {alone};
+		    true -> 
+			SecondProcess = lists:nth(2, WorkerPids),
+			FirstProcess ! {first, SecondProcess},
+			sendPIDs(RestPids)
+		end,
+		    {Result, _Carry} = collect(length(WorkerPids), []),
+		?_assertEqual(A+B,list_to_integer(int_list_to_string(Result),Base))
+
+	end,
+
+    [Assert(A,B,Base,N,{0,100}) || A <- [random:uniform(1000000) || _ <- lists:seq(1,4)],
+				   B <- [random:uniform(1000000) || _ <- lists:seq(1,4)],
+				   Base <- lists:seq(2,16),
+				   N <- lists:seq(2,4)].
